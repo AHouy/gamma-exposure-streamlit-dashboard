@@ -1,0 +1,40 @@
+# Build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+
+# Environments
+.venv
+env/
+venv/
+ENV/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# macOS
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Data
+*.csv
+*.json
+*.duckdb
+*.db
+*.sqlite
+
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+docker-compose.yaml
