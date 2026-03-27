@@ -521,6 +521,7 @@ def create_highcharts_bar(data, title, value_vars, label_map, current_price, tim
             "type": "bar", 
             "height": height, 
             "backgroundColor": "transparent", 
+            "animation": False,
             "spacingTop": 40,
             "spacingBottom": 40,
             "spacingLeft": 10,
@@ -558,7 +559,10 @@ def create_highcharts_bar(data, title, value_vars, label_map, current_price, tim
             "borderColor": "rgba(255, 255, 255, 0.1)",
             "borderRadius": 8
         },
-        "plotOptions": { "bar": { "dataLabels": { "enabled": False } }, "series": { "animation": False } },
+        "plotOptions": { 
+            "bar": { "dataLabels": { "enabled": False } }, 
+            "series": { "animation": False } 
+        },
         "series": series,
         "credits": { "enabled": False }
     }
@@ -631,7 +635,15 @@ def create_highcharts_heatmap(df, title, metric, current_price, is_normalized=Tr
     color_max = 1 if is_normalized else df[metric].max()
 
     options = {
-        "chart": { "type": 'heatmap', "backgroundColor": 'transparent', "height": 600 },
+        "chart": { 
+            "type": 'heatmap', 
+            "backgroundColor": 'transparent', 
+            "height": 600, 
+            "animation": False 
+        },
+        "plotOptions": {
+            "series": { "animation": False }
+        },
         "title": { "text": title, "align": "left", "style": { "color": "#f8fafc", "fontWeight": "bold" } },
         "xAxis": {
             "type": 'datetime',
@@ -701,7 +713,15 @@ def create_highcharts_line(df, title, metric):
         })
 
     options = {
-        "chart": { "type": 'line', "backgroundColor": 'transparent', "height": 600 },
+        "chart": { 
+            "type": 'line', 
+            "backgroundColor": 'transparent', 
+            "height": 600, 
+            "animation": False 
+        },
+        "plotOptions": {
+            "series": { "animation": False }
+        },
         "title": { "text": title, "align": "left", "style": { "color": "#f8fafc", "fontWeight": "bold" } },
         "xAxis": {
             "type": 'datetime',
