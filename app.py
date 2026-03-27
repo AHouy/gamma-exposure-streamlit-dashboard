@@ -519,7 +519,7 @@ def create_horizontal_bar_chart(data, title, value_vars, label_map, current_pric
     
     fig = go.Figure()
     
-    colors = px.colors.qualitative.Plotly
+    colors = px.colors.qualitative.D3
     
     # Add Bars for each metric
     for i, var in enumerate(value_vars):
@@ -592,12 +592,19 @@ def create_horizontal_bar_chart(data, title, value_vars, label_map, current_pric
     )
 
     fig.update_layout(
-        title=title,
+        title=dict(text=title, y=1.0, x=0.5, xanchor='center', yanchor='top'),
         template="plotly_dark",
         barmode='group',
         height=1000,
-        margin=dict(l=0, r=0, t=50, b=0),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        margin=dict(l=20, r=20, t=50, b=100),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=1.02,
+            xanchor="center",
+            x=0.5,
+            traceorder="normal"
+        ),
         xaxis=dict(title="Dealer Exposure", gridcolor="#31333f"),
         yaxis=dict(title="Strike", gridcolor="#31333f", categoryorder='array', categoryarray=data['strike_label'])
     )
@@ -622,13 +629,19 @@ def create_line_chart(data, title, y_var):
         ))
 
     fig.update_layout(
-        title=title,
+        title=dict(text=title, y=1.0, x=0.5, xanchor='center', yanchor='top'),
         template="plotly_dark",
         height=600,
-        margin=dict(l=0, r=0, t=50, b=0),
+        margin=dict(l=20, r=20, t=110, b=100),
+        legend=dict(
+            orientation="h",
+            yanchor="top",
+            y=1.02,
+            xanchor="center",
+            x=0.5
+        ),
         xaxis=dict(title=None, gridcolor="#31333f"),
-        yaxis=dict(title="Exposure", gridcolor="#31333f"),
-        legend=dict(title="Strikes")
+        yaxis=dict(title="Exposure", gridcolor="#31333f")
     )
     
     return fig
@@ -660,7 +673,7 @@ def create_heatmap(data, title, metric, strikes, normalized=True):
         z=z_values,
         x=hm_pivot.columns,
         y=hm_pivot.index, # Pass numeric index for linear scale
-        colorscale=[[0, 'red'], [0.5, 'black'], [1, 'green']],
+        colorscale=[[0, '#ef4444'], [0.5, 'rgba(30, 32, 47, 0)'], [1, '#10b981']],
         zmin=color_range[0],
         zmax=color_range[1],
         hoverongaps=False,
@@ -691,7 +704,6 @@ def create_heatmap(data, title, metric, strikes, normalized=True):
     return fig
 
 # --- Live Stats Bar ---
-st.markdown("---")
 s_col1, s_col2, s_col3, s_col4, s_col5 = st.columns(5)
 with s_col1:
     st.metric("Current Price", f"${current_price:.2f}")
@@ -713,7 +725,7 @@ tab1, tab2 = st.tabs(["📊 Spot", "📈 Historical"])
 
 with tab1:
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         gamma_chart = create_horizontal_bar_chart(
             filtered_snapshot, 
@@ -736,6 +748,7 @@ with tab1:
         )
         st.plotly_chart(delta_chart, width='stretch')
 
+    col3, col4 = st.columns(2)
     with col3:
         charm_chart = create_horizontal_bar_chart(
             filtered_snapshot, 
@@ -750,6 +763,14 @@ with tab1:
 # ----------------- Render Bottom Row -----------------
 with tab2:
     st.subheader("Historical Trajectory")
+    hm_gamma = create_heatmap(
+        ticker_df, 
+        f"Gamma Concentration Heatmap - {selected_ticker}", 
+        'dealer_gamma_vol', 
+        valid_strikes,
+        normalized=st.session_state.normalized_heatmap
+    )
+    st.plotly_chart(hm_gamma, width='stretch')
     col1, col2 = st.columns(2)
     with col1:
         st.plotly_chart(create_line_chart(
@@ -769,26 +790,14 @@ with tab2:
     st.subheader("Exposure Heatmaps")
     st.caption("Lowering SVG node count via 1-minute downsampling for high-density rendering.")
     
-    col3, col4 = st.columns(2)
-    with col3:
-        hm_gamma = create_heatmap(
-            ticker_df, 
-            f"Gamma Concentration Heatmap - {selected_ticker}", 
-            'dealer_gamma_vol', 
-            valid_strikes,
-            normalized=st.session_state.normalized_heatmap
-        )
-        st.plotly_chart(hm_gamma, width='stretch')
-
-    with col4:
-        hm_charm = create_heatmap(
-            ticker_df, 
-            f"Charm Concentration Heatmap - {selected_ticker}", 
-            'dealer_charm_vol', 
-            valid_strikes,
-            normalized=st.session_state.normalized_heatmap
-        )
-        st.plotly_chart(hm_charm, width='stretch')
+    hm_charm = create_heatmap(
+        ticker_df, 
+        f"Charm Concentration Heatmap - {selected_ticker}", 
+        'dealer_charm_vol', 
+        valid_strikes,
+        normalized=st.session_state.normalized_heatmap
+    )
+    st.plotly_chart(hm_charm, width='stretch')
 
 
 # ----------------- Animation: Rerun Trigger -----------------
