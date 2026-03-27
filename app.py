@@ -395,6 +395,9 @@ if timeframe != "Full Day":
     minutes_map = {"Last 15 Minutes": 15, "Last 30 Minutes": 30, "Last 1 Hour": 60, "Last 4 Hours": 240}
     cutoff_time = view_timestamp - pd.Timedelta(minutes=minutes_map[timeframe])
     ticker_df = ticker_df[ticker_df['timestamp'] >= cutoff_time]
+else:
+    # If Full Day, filter to the specific date of the view_timestamp
+    ticker_df = ticker_df[ticker_df['date'] == view_timestamp.date()]
 
 snapshot_df = ticker_df[ticker_df['timestamp'] == view_timestamp]
 if snapshot_df.empty:
@@ -814,7 +817,7 @@ with tab2:
     
     # Heatmap Section
     gamma_hm_opts = create_highcharts_heatmap(
-        full_df[full_df['strike'].isin(valid_strikes)], 
+        filtered_timeseries, 
         f"Gamma Exposure Heatmap - {selected_ticker}", 
         'dealer_gamma_vol',
         current_price,
@@ -827,7 +830,7 @@ with tab2:
     col1, col2 = st.columns(2)
     with col1:
         gamma_flow_opts = create_highcharts_line(
-            full_df[full_df['strike'].isin(valid_strikes)], 
+            filtered_timeseries, 
             "Gamma Exposure by Time per Strike", 
             "dealer_gamma_vol"
         )
@@ -836,7 +839,7 @@ with tab2:
             
     with col2:
         delta_flow_opts = create_highcharts_line(
-            full_df[full_df['strike'].isin(valid_strikes)], 
+            filtered_timeseries, 
             "Delta Exposure by Time per Strike", 
             "dealer_delta_vol"
         )
@@ -844,7 +847,7 @@ with tab2:
             streamlit_highcharts(delta_flow_opts, key="hist_delta_line", height=650)
 
     charm_hm_opts = create_highcharts_heatmap(
-        full_df[full_df['strike'].isin(valid_strikes)], 
+        filtered_timeseries, 
         f"Charm Exposure Heatmap - {selected_ticker}", 
         'dealer_charm_vol',
         current_price,
