@@ -1,0 +1,2384 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamma Exposure | Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@12.5.0/highcharts.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@12.5.0/modules/exporting.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@12.5.0/modules/accessibility.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@12.5.0/highcharts-more.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@12.5.0/modules/heatmap.js"></script>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/highcharts@12.5.0/modules/boost.js"></script> -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;800&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0f111a;
+            --bg-card: rgba(30, 32, 47, 0.7);
+            --bg-sidebar: #161826;
+            --accent-primary: #8b5cf6;
+            --accent-secondary: #f59e0b;
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            --glass-bg: rgba(22, 24, 38, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 320px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+            z-index: 100;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+            padding: 24px 15px;
+        }
+
+        .sidebar.collapsed .sidebar-header-text,
+        .sidebar.collapsed .sidebar-label,
+        .sidebar.collapsed .control-group,
+        .sidebar.collapsed .checkbox-group label,
+        .sidebar.collapsed .sidebar-section>*:not(.sidebar-toggle) {
+            display: none !important;
+        }
+
+        .sidebar.collapsed h1 {
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .sidebar-toggle {
+            position: absolute;
+            top: 24px;
+            right: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-dim);
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 110;
+            transition: all 0.2s;
+        }
+
+        .sidebar.collapsed .sidebar-toggle {
+            right: 28px;
+        }
+
+        .sidebar-toggle:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+        }
+
+        .sidebar h1 {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 800;
+            font-size: 24px;
+            background: linear-gradient(135deg, #a78bfa 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .sidebar-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        select,
+        input[type="range"] {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        select:focus {
+            border-color: var(--accent-primary);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .checkbox-group input {
+            cursor: pointer;
+        }
+
+        .playback-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .btn {
+            background-color: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .btn.active {
+            background-color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Main Content Styling */
+        .main-content {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 4px;
+            border-radius: 10px;
+        }
+
+        .tab {
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            color: var(--text-dim);
+        }
+
+        .tab.active {
+            background-color: var(--bg-sidebar);
+            color: var(--text-main);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            padding: 16px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            flex: 1;
+        }
+
+        /* --- Responsive Design --- */
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+                overflow-y: auto;
+            }
+
+            .sidebar {
+                width: 100% !important;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 16px;
+                position: relative;
+            }
+
+            .sidebar.collapsed {
+                height: 60px;
+                overflow: hidden;
+            }
+
+            .sidebar-toggle {
+                transform: rotate(90deg);
+                top: 16px;
+            }
+
+            .sidebar.collapsed .sidebar-toggle {
+                transform: rotate(-90deg);
+            }
+
+            .main-content {
+                padding: 16px;
+                height: auto;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .chart-wrapper {
+                min-height: 400px;
+            }
+        }
+
+        .side-legend {
+            background: rgba(255, 255, 255, 0.03);
+            border-top: 1px solid var(--glass-border);
+            padding: 12px 20px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            border-radius: 0 0 20px 20px;
+            flex-wrap: wrap;
+            margin: 0 -20px;
+        }
+
+        .chart-wrapper {
+            background: var(--bg-card);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 20px 20px 0 20px;
+            min-height: 550px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .side-legend-title {
+            font-size: 10px;
+            font-weight: 800;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-right: -8px;
+        }
+
+        .side-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            color: var(--text-main);
+        }
+
+        .marker-icon {
+            color: #94a3b8;
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
+        }
+
+        .chart-container {
+            flex: 1;
+            width: 100%;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        #rewind-slider-label {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .metric-toggles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .metric-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            color: var(--text-dim);
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .metric-btn.active {
+            background: rgba(139, 92, 246, 0.2);
+            border-color: var(--accent-primary);
+            color: var(--text-main);
+        }
+
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--bg-deep);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-top: 4px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Connection Status States */
+        .status-reconnecting {
+            color: var(--accent-secondary) !important;
+            animation: pulse-status 1.5s infinite;
+        }
+
+        .status-error {
+            color: #ef4444 !important;
+            animation: pulse-status 1s infinite;
+        }
+
+        @keyframes pulse-status {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* --- Notifications Panel --- */
+        .notification-panel {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 8px;
+        }
+
+        .notification-item {
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            border-left: 4px solid #ccc;
+            background: rgba(255, 255, 255, 0.04);
+            transition: transform 0.2s, background 0.2s;
+            cursor: default;
+        }
+
+        .notification-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .notification-item.gamma_flip {
+            border-left-color: var(--accent-primary);
+        }
+
+        .notification-item.zscore {
+            border-left-color: var(--accent-secondary);
+        }
+
+        .notif-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .notif-type {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-dim);
+        }
+
+        .notif-time {
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+
+        .notif-body {
+            line-height: 1.4;
+            white-space: pre-wrap;
+            color: var(--text-main);
+        }
+
+        .empty-notifications {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 12px;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>Initializing Analytics...</p>
+    </div>
+
+    <aside class="sidebar">
+        <div class="sidebar-header" style="position: relative;">
+            <button class="sidebar-toggle" id="sidebar-toggle">◀</button>
+            <div class="sidebar-header-text">
+                <h1>GAMMA FLOW</h1>
+                <p style="font-size: 13px; color: var(--text-dim);">Dealer Exposure Analytics</p>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <label class="sidebar-label">Asset</label>
+            <div class="control-group">
+                <select id="ticker-select">
+                    <option value="QQQ">QQQ</option>
+                    <option value="SPY">SPY</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="checkbox-group" id="rewind-toggle-wrap">
+                <input type="checkbox" id="rewind-checkbox">
+                <label for="rewind-checkbox">Enable Rewind</label>
+            </div>
+            <div id="date-select-wrap" class="control-group hidden">
+                <label class="sidebar-label">Select Date</label>
+                <select id="date-select"></select>
+            </div>
+        </div>
+
+        <div id="rewind-controls" class="sidebar-section hidden">
+            <label class="sidebar-label">Replay Controls</label>
+            <div class="playback-controls">
+                <button class="btn" id="btn-back">⏪</button>
+                <button class="btn" id="btn-play">▶️</button>
+                <button class="btn" id="btn-forward">⏩</button>
+            </div>
+            <div class="control-group">
+                <div class="slider-header">
+                    <label class="sidebar-label">Snapshot</label>
+                    <span id="rewind-slider-label">00:00:00</span>
+                </div>
+                <input type="range" id="rewind-slider" min="0" max="100" value="0">
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <label class="sidebar-label">Configuration</label>
+            <div class="control-group">
+                <label class="sidebar-label" style="font-size: 10px;">Timeframe</label>
+                <select id="timeframe-select">
+                    <option value="15">Last 15 Minutes</option>
+                    <option value="30">Last 30 Minutes</option>
+                    <option value="60">Last 1 Hour</option>
+                    <option value="240">Last 4 Hours</option>
+                    <option value="all" selected>Full Day</option>
+                </select>
+            </div>
+            <div class="control-group">
+                <label class="sidebar-label" style="font-size: 10px;">Strike Count: <span
+                        id="strike-count-val">10</span></label>
+                <input type="range" id="strike-slider" min="1" max="50" value="10">
+            </div>
+            <div class="checkbox-group" style="margin-top: 8px;">
+                <input type="checkbox" id="heatmap-norm-checkbox" checked>
+                <label for="heatmap-norm-checkbox" style="font-size: 12px; color: var(--text-dim);">Normalized
+                    Heatmap</label>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <label class="sidebar-label">Recent Alerts</label>
+            <div id="notification-panel" class="notification-panel">
+                <div class="empty-notifications">Waiting for signals...</div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <nav class="top-nav">
+            <div class="tabs">
+                <div class="tab active" data-tab="spot">📊 Spot Analysis</div>
+                <div class="tab" data-tab="historical">📈 Historical Flow</div>
+            </div>
+            <div id="last-updated" style="font-size: 12px; color: var(--text-dim);">
+                Last Live Sync: <span id="sync-time">--:--:--</span>
+            </div>
+        </nav>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-label">Current Price</span>
+                <span class="stat-value" id="stat-price">$0.00</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Max Gamma Strike</span>
+                <span class="stat-value" id="stat-max-gamma">$0.00</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Total Delta Exposure</span>
+                <span class="stat-value" id="stat-total-delta">$0.00</span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Ticker</span>
+                <span class="stat-value" id="stat-ticker">---</span>
+            </div>
+        </div>
+
+        <!-- Spot Analysis View -->
+        <div id="view-spot" class="charts-grid">
+            <div class="chart-wrapper">
+                <div id="chart-spot-gamma" class="chart-container"></div>
+                <div class="side-legend" id="legend-gamma"></div>
+            </div>
+            <div class="chart-wrapper">
+                <div id="chart-spot-delta" class="chart-container"></div>
+                <div class="side-legend" id="legend-delta"></div>
+            </div>
+            <!-- <div class="chart-wrapper">
+                <div id="chart-spot-charm" class="chart-container"></div>
+                <div class="side-legend" id="legend-charm"></div>
+            </div> -->
+
+        </div>
+
+        <!-- Historical View -->
+        <div id="view-historical" class="charts-grid hidden">
+            <div class="chart-wrapper" style="grid-column: 1 / -1; min-height: 500px;">
+                <div id="chart-hist-heatmap" class="chart-container"></div>
+            </div>
+            <div class="chart-wrapper">
+                <div id="chart-hist-gamma" class="chart-container"></div>
+            </div>
+            <div class="chart-wrapper">
+                <div id="chart-hist-delta" class="chart-container"></div>
+            </div>
+            <!-- <div class="chart-wrapper">
+                <div id="chart-hist-charm" class="chart-container"></div>
+            </div> -->
+            <div class="chart-wrapper" style="grid-column: 1 / -1; min-height: 500px;">
+                <div id="chart-hist-charm-heatmap" class="chart-container"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // --- State Management ---
+        const state = {
+            tickers: [],
+            availableDates: [],
+            selectedTicker: 'QQQ',
+            selectedDate: null,
+            isRewind: false,
+            isPlaying: false,
+            rewindIdx: -1,
+            timeframe: 'all',
+            strikeCount: 10,
+            normalizedHeatmap: true,
+            activeIntervals: [1, 5, 10, 15, 30],
+
+            // Historical data storage — Map<timestamp, rows[]> for O(1) lookups
+            snapshotMap: new Map(),
+            uniqueTimestamps: [], // Sorted keys derived from snapshotMap
+
+            liveSnapshotByStrike: new Map(),
+
+            // Metrics to show
+            gammaMetrics: ['dealer_gamma_oi', 'dealer_gamma_vol', 'call_gamma_vol', 'put_gamma_vol'],
+            deltaMetrics: ['dealer_delta_oi', 'dealer_delta_vol', 'call_delta_vol', 'put_delta_vol'],
+            charmMetrics: ['dealer_charm_oi', 'dealer_charm_vol', 'call_charm_vol', 'put_charm_vol'],
+
+            activeTab: 'spot',
+            currentPrice: 0,
+            charts: {},
+            notifications: [],
+            pendingRefreshTimer: null,
+            pendingRefreshStats: false,
+            pendingRefreshNotifications: false,
+            pendingRefreshTick: false,
+            historicalPointsCache: new Map()
+        };
+
+        // Load persisted metrics from localStorage
+        try {
+            const savedGamma = localStorage.getItem('gammaMetrics');
+            const savedDelta = localStorage.getItem('deltaMetrics');
+            const savedCharm = localStorage.getItem('charmMetrics');
+            const savedIntervals = localStorage.getItem('activeIntervals');
+            const savedTab = localStorage.getItem('activeTab');
+            const savedStrikeCount = localStorage.getItem('strikeCount');
+            const savedNorm = localStorage.getItem('normalizedHeatmap');
+
+            if (savedGamma) state.gammaMetrics = JSON.parse(savedGamma);
+            if (savedDelta) state.deltaMetrics = JSON.parse(savedDelta);
+            if (savedCharm) state.charmMetrics = JSON.parse(savedCharm);
+            if (savedIntervals) state.activeIntervals = JSON.parse(savedIntervals);
+            if (savedTab) state.activeTab = savedTab;
+            if (savedStrikeCount) state.strikeCount = parseInt(savedStrikeCount);
+            if (savedNorm) state.normalizedHeatmap = savedNorm === 'true';
+
+            // Sync UI
+            if (state.strikeCount) {
+                const slider = document.getElementById('strike-slider');
+                if (slider) slider.value = state.strikeCount;
+                const valDisp = document.getElementById('strike-count-val');
+                if (valDisp) valDisp.textContent = state.strikeCount;
+            }
+            if (state.normalizedHeatmap !== undefined) {
+                const cb = document.getElementById('heatmap-norm-checkbox');
+                if (cb) cb.checked = state.normalizedHeatmap;
+            }
+        } catch (e) {
+            console.warn("Failed to load metrics from localStorage", e);
+        }
+
+        function saveMetricsState() {
+            try {
+                localStorage.setItem('gammaMetrics', JSON.stringify(state.gammaMetrics));
+                localStorage.setItem('deltaMetrics', JSON.stringify(state.deltaMetrics));
+                localStorage.setItem('charmMetrics', JSON.stringify(state.charmMetrics));
+                localStorage.setItem('activeIntervals', JSON.stringify(state.activeIntervals));
+                localStorage.setItem('activeTab', state.activeTab);
+                localStorage.setItem('strikeCount', state.strikeCount);
+                localStorage.setItem('normalizedHeatmap', state.normalizedHeatmap);
+            } catch (e) {
+                console.warn("Failed to save metrics to localStorage", e);
+            }
+        }
+
+        const metricLabels = {
+            'dealer_gamma_oi': 'Open Interest',
+            'dealer_gamma_vol': 'Net Volume',
+            'call_gamma_vol': 'Call Vol',
+            'put_gamma_vol': 'Put Vol',
+            'naive_gamma': 'Naive Gamma',
+            'dealer_delta_oi': 'Open Interest',
+            'dealer_delta_vol': 'Net Volume',
+            'call_delta_vol': 'Call Vol',
+            'put_delta_vol': 'Put Vol',
+            'dealer_charm_oi': 'Open Interest',
+            'dealer_charm_vol': 'Net Volume',
+            'call_charm_vol': 'Call Vol',
+            'put_charm_vol': 'Put Vol'
+        };
+
+        const colors = {
+            purple: '#8b5cf6',
+            gold: '#f59e0b',
+            blue: '#3b82f6',
+            red: '#ef4444',
+            green: '#10b981'
+        };
+
+        const metricColors = {
+            'dealer_gamma_oi': colors.purple,
+            'dealer_gamma_vol': colors.gold,
+            'call_gamma_vol': colors.green,
+            'put_gamma_vol': colors.red,
+            'naive_gamma': colors.blue,
+            'dealer_delta_oi': colors.purple,
+            'dealer_delta_vol': colors.gold,
+            'call_delta_vol': colors.green,
+            'put_delta_vol': colors.red,
+            'dealer_charm_oi': colors.purple,
+            'dealer_charm_vol': colors.gold,
+            'call_charm_vol': colors.green,
+            'put_charm_vol': colors.red
+        };
+
+        // --- Highcharts Theme ---
+        Highcharts.setOptions({
+            time: {
+                timezone: 'America/New_York'
+            },
+            chart: {
+                backgroundColor: 'transparent',
+                animation: false,
+                style: {
+                    fontFamily: 'Inter, sans-serif'
+                }
+            },
+            boost: {
+                useGPUTranslations: true,
+                usePreAllocated: true
+            },
+            title: {
+                style: { color: '#e2e8f0', fontWeight: 'bold' },
+                align: 'left'
+            },
+            xAxis: {
+                gridLineColor: 'rgba(255, 255, 255, 0.05)',
+                labels: { style: { color: '#94a3b8' } },
+                lineColor: 'rgba(255, 255, 255, 0.1)',
+                tickColor: 'rgba(255, 255, 255, 0.1)'
+            },
+            yAxis: {
+                gridLineColor: 'rgba(255, 255, 255, 0.05)',
+                labels: { style: { color: '#94a3b8' } },
+                title: { style: { color: '#94a3b8' } }
+            },
+            legend: {
+                itemStyle: { color: '#e2e8f0' },
+                itemHoverStyle: { color: '#ffffff' }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(15, 17, 26, 0.9)',
+                style: { color: '#e2e8f0' },
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 8
+            },
+            plotOptions: {
+                series: {
+                    animation: false,
+                    stickyTracking: true,
+                    boostThreshold: 2000
+                }
+            },
+            credits: { enabled: false }
+        });
+
+        // --- Helpers ---
+        const formatUSD = (val) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+        const formatCompact = (val) => {
+            const abs = Math.abs(val);
+            if (abs >= 1e9) return (val / 1e9).toFixed(2) + 'B';
+            if (abs >= 1e6) return (val / 1e6).toFixed(2) + 'M';
+            if (abs >= 1e3) return (val / 1e3).toFixed(2) + 'k';
+            return val.toFixed(2);
+        };
+
+        // --- API Calls ---
+        async function api(endpoint, params = {}) {
+            // Support passing full absolute URLs. If not absolute, attach to origin.
+            // If running via file:// protocol directly, fallback to localhost:8000
+            let baseUrl = endpoint;
+            if (!endpoint.startsWith('http')) {
+                const origin = window.location.origin !== 'null' && !window.location.origin.startsWith('file')
+                    ? window.location.origin
+                    : 'http://127.0.0.1:8000';
+                baseUrl = origin + endpoint;
+            }
+
+            const url = new URL(baseUrl);
+            Object.keys(params).forEach(key => url.searchParams.append(key, params[key]));
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`API error: ${res.statusText}`);
+            return await res.json();
+        }
+
+        async function init() {
+            try {
+                // Fetch tickers
+                const tickerData = await api('/api/tickers');
+                state.tickers = tickerData.tickers || [];
+
+                const select = document.getElementById('ticker-select');
+                select.innerHTML = '';
+
+                // Prioritize QQQ and SPY, then sort rest alphabetically
+                const prioritized = ['QQQ', 'SPY'];
+                state.tickers.sort((a, b) => {
+                    const idxA = prioritized.indexOf(a);
+                    const idxB = prioritized.indexOf(b);
+                    if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                    if (idxA !== -1) return -1;
+                    if (idxB !== -1) return 1;
+                    return a.localeCompare(b);
+                }).forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    if (t === state.selectedTicker) opt.selected = true;
+                    select.appendChild(opt);
+                });
+
+                await loadData();
+                setupSSE();
+                hideLoading();
+            } catch (err) {
+                console.error("Init failed:", err);
+            }
+        }
+
+        async function loadData() {
+            showLoading();
+            const ticker = state.selectedTicker;
+
+            // Clear old data to prevent ticker/date leakage
+            state.snapshotMap = new Map();
+            state.uniqueTimestamps = [];
+            state.rewindIdx = -1;
+            state.liveSnapshot = [];
+            state.liveSnapshotByStrike = new Map();
+            state.notifications = [];
+            clearHistoricalPointsCache();
+
+            try {
+                if (state.isRewind) {
+                    const dateData = await api(`/api/gamma/dates/${ticker}`);
+                    state.availableDates = dateData.dates || [];
+
+                    const dSelect = document.getElementById('date-select');
+                    dSelect.innerHTML = '';
+
+                    // If we don't have a selected date yet, or the current one isn't in the new list, 
+                    // default to the first available date
+                    if (!state.selectedDate || !state.availableDates.includes(state.selectedDate)) {
+                        state.selectedDate = state.availableDates[0] || null;
+                    }
+
+                    state.availableDates.forEach(d => {
+                        const opt = document.createElement('option');
+                        opt.value = d;
+                        opt.textContent = d;
+                        if (d === state.selectedDate) opt.selected = true;
+                        dSelect.appendChild(opt);
+                    });
+                }
+
+                // Stage 1: Load current snapshot for fast initial render if viewing today's data
+                const today = new Date().toISOString().split('T')[0];
+                const isViewingToday = !state.isRewind || state.selectedDate === today;
+
+                if (isViewingToday) {
+                    console.log(`[LOADER] Fast-fetching current snapshot for ${ticker}...`);
+                    await fetchCurrentSnapshot(ticker);
+                    await loadNotifications();
+                    hideLoading();
+                }
+
+                // Stage 2: Load full historical trajectory in the background
+                console.log(`[LOADER] Background-fetching full history for ${ticker}...`);
+                fetchHistoricalData(ticker).then(() => {
+                    if (!isViewingToday) {
+                        loadNotifications(); // Load notifications for historical view
+                        hideLoading();
+                    }
+                });
+
+            } catch (err) {
+                console.error("[LOADER] Data load failed:", err);
+                hideLoading();
+            }
+        }
+
+        async function loadNotifications() {
+            try {
+                const params = { limit: 1000 };
+                if (state.selectedTicker) {
+                    params.ticker = state.selectedTicker;
+                }
+                if (state.isRewind && state.selectedDate) {
+                    params.date = state.selectedDate;
+                } else if (!state.isRewind) {
+                    // For live, load today's notifications
+                    params.date = new Date().toISOString().split('T')[0];
+                }
+
+                const notifData = await api('/api/notifications', params);
+                state.notifications = notifData.notifications || [];
+                renderNotifications();
+            } catch (err) {
+                console.warn("[LOADER] Could not fetch notifications:", err);
+            }
+        }
+
+        function renderNotifications() {
+            const container = getEl('notification-panel');
+            if (!container) return;
+
+            // Determine if we should filter based on rewind
+            let visibleNotifs = [...state.notifications];
+
+            if (state.isRewind && state.uniqueTimestamps.length > 0) {
+                const currentTs = state.uniqueTimestamps[state.rewindIdx];
+                visibleNotifs = visibleNotifs.filter(n => n.timestamp <= currentTs);
+            }
+
+            // Also filter by ticker if watching a specific one
+            if (state.selectedTicker !== 'ALL') { // Adjust if you have an 'ALL' option
+                visibleNotifs = visibleNotifs.filter(n => n.ticker === state.selectedTicker);
+            }
+
+            // Take first 10 (newest)
+            visibleNotifs = visibleNotifs.slice(0, 10);
+
+            if (visibleNotifs.length === 0) {
+                container.innerHTML = '<div class="empty-notifications">No alerts for this period...</div>';
+                return;
+            }
+
+            container.innerHTML = visibleNotifs.map(n => `
+                <div class="notification-item ${n.type}">
+                    <div class="notif-header">
+                        <span class="notif-type">${n.type.replace('_', ' ')}</span>
+                        <span class="notif-time">${new Date(n.timestamp).toLocaleTimeString('en-US', { hour12: false, timeZone: 'America/New_York' })}</span>
+                    </div>
+                    <div class="notif-body">${n.message.replace(/\*\*/g, '').replace(/🚨|💫|🔥|⚠️|🟩|🟥/g, '')}</div>
+                </div>
+            `).join('');
+        }
+
+        async function fetchCurrentSnapshot(ticker) {
+            try {
+                const livePayload = await api(`/api/gamma/current/${ticker}`);
+                if (livePayload && livePayload.strikes) {
+                    const rawTs = livePayload.timestamp;
+                    const now = rawTs ? new Date(rawTs).getTime() : Date.now();
+
+                    state.currentPrice = livePayload.price;
+                    const strikeMap = new Map();
+                    livePayload.strikes.forEach(s => {
+                        strikeMap.set(s.strike, {
+                            ...s,
+                            timestamp: now,
+                            ticker: ticker,
+                            naive_gamma: (s.put_gamma_vol || 0) - (s.call_gamma_vol || 0)
+                        });
+                    });
+
+                    // Populate initial state
+                    state.snapshotMap = new Map([[now, {
+                        price: livePayload.price,
+                        strikes: strikeMap
+                    }]]);
+                    state.uniqueTimestamps = [now];
+                    state.rewindIdx = 0;
+                    state.liveSnapshotByStrike = new Map();
+                    clearHistoricalPointsCache();
+
+                    updateCharts();
+                    updateStats();
+                }
+            } catch (err) {
+                console.warn("[LOADER] Fast-fetch failed or no data for today:", err);
+            }
+        }
+
+        async function fetchHistoricalData(ticker = state.selectedTicker) {
+            const params = {};
+            if (state.isRewind && state.selectedDate) {
+                params.date = state.selectedDate;
+            }
+
+            try {
+                const histData = await api(`/api/gamma/historical/${ticker}`, params);
+                const history = (histData.history || []).map(row => ({
+                    ...row,
+                    timestamp: row.timestamp, // Backend already gives ms
+                    naive_gamma: (row.put_gamma_vol || 0) - (row.call_gamma_vol || 0)
+                }));
+
+                history.forEach(row => {
+                    const ts = row.timestamp;
+                    if (!state.snapshotMap.has(ts)) {
+                        state.snapshotMap.set(ts, { price: row.price, strikes: new Map() });
+                    }
+                    const entry = state.snapshotMap.get(ts);
+                    entry.strikes.set(row.strike, {
+                        ...row,
+                        naive_gamma: (row.put_gamma_vol || 0) - (row.call_gamma_vol || 0)
+                    });
+                });
+
+                // Rebuild sorted timestamp index
+                state.uniqueTimestamps = Array.from(state.snapshotMap.keys()).sort((a, b) => a - b);
+
+                // Set rewind index to the end
+                state.rewindIdx = state.uniqueTimestamps.length - 1;
+
+                // Wipe liveSnapshot — snapshotMap is the source of truth
+                state.liveSnapshotByStrike = new Map();
+                clearHistoricalPointsCache();
+
+                if (state.isRewind) {
+                    updateRewindUI();
+                }
+
+                updateCharts();
+                updateStats();
+                console.log(`[LOADER] History loaded: ${state.uniqueTimestamps.length} snapshots.`);
+            } catch (err) {
+                console.error("[LOADER] Historical fetch failed:", err);
+            }
+        }
+
+        function setupSSE() {
+            if (window.eventSource) window.eventSource.close();
+            if (state.isRewind) return;
+
+            const syncEl = document.getElementById('sync-time');
+            let isRecovering = false;
+
+            const origin = window.location.origin !== 'null' && !window.location.origin.startsWith('file')
+                ? window.location.origin
+                : 'http://127.0.0.1:8000';
+
+            window.eventSource = new EventSource(`${origin}/api/gamma/stream/${state.selectedTicker}`);
+
+            window.eventSource.onopen = () => {
+                console.log("[SSE] Connected");
+                syncEl.classList.remove('status-reconnecting', 'status-error');
+
+                // If we were previously disconnected, we might have missed snapshots.
+                // Re-fetch recent history to fill the gaps.
+                if (state.uniqueTimestamps.length > 0) {
+                    console.log("[SSE] Recovering missed data...");
+                    isRecovering = true;
+                    fetchHistoricalData(state.selectedTicker).then(() => {
+                        isRecovering = false;
+                        syncEl.textContent = "Synced (Recovered)";
+                    });
+                }
+            };
+
+            window.eventSource.onerror = (e) => {
+                console.error("[SSE] Connection error:", e);
+                syncEl.textContent = "Reconnecting...";
+                syncEl.classList.add('status-reconnecting');
+                syncEl.classList.remove('status-error');
+
+                // If the state is CLOSED, it means a fatal error occurred (not just a drop)
+                if (window.eventSource.readyState === EventSource.CLOSED) {
+                    syncEl.textContent = "Connection Lost";
+                    syncEl.classList.add('status-error');
+                }
+            };
+
+            window.eventSource.onmessage = (e) => {
+                if (e.data === 'connected') return;
+                if (isRecovering) return; // Skip live updates while history is being backfilled
+
+                const livePayload = JSON.parse(e.data);
+
+                // Handle Tick-by-Tick updates
+                if (livePayload.sse_type === 'tick') {
+                    const latestTs = state.uniqueTimestamps[state.uniqueTimestamps.length - 1];
+                    if (!latestTs) return;
+
+                    // Lazily initialize liveSnapshotByStrike from snapshotMap on first tick
+                    if (state.liveSnapshotByStrike.size === 0) {
+                        const entry = state.snapshotMap.get(latestTs);
+                        if (entry && entry.strikes) {
+                            // Deep copy rows to prevent mutating historical ground truth during ticks
+                            state.liveSnapshotByStrike = new Map(
+                                Array.from(entry.strikes.entries()).map(([strike, row]) => [strike, { ...row }])
+                            );
+                        }
+                    }
+
+                    // Apply tick updates to liveSnapshot ONLY (not snapshotMap)
+                    livePayload.updates.forEach(upd => {
+                        const strike = upd.strike;
+                        const values = upd.values;
+                        for (const key in values) if (values[key] === 0) delete values[key];
+
+                        const row = state.liveSnapshotByStrike.get(strike);
+                        if (row) {
+                            Object.assign(row, values);
+                            row.naive_gamma = (row.put_gamma_vol || 0) - (row.call_gamma_vol || 0);
+                        }
+                    });
+                    if (livePayload.price) {
+                        state.currentPrice = +livePayload.price;
+                        for (const row of state.liveSnapshotByStrike.values()) {
+                            row.price = state.currentPrice;
+                        }
+                    }
+
+                    if (!state.isRewind && !state.isPlaying && state.rewindIdx === state.uniqueTimestamps.length - 1) {
+                        state.rewindIdx = state.uniqueTimestamps.length - 1;
+                        scheduleRefresh({ stats: true, tick: true });
+                        syncEl.textContent = new Date().toLocaleTimeString('en-US', { timeZone: 'America/New_York' }) + ' (tick)';
+                    }
+                    return;
+                }
+
+                // Handle Full Snapshots
+                if (livePayload && livePayload.strikes) {
+                    // Convert ISO timestamp string to numeric milliseconds
+                    const rawTs = livePayload.timestamp;
+                    const now = rawTs ? new Date(rawTs).getTime() : Date.now();
+
+                    if (state.snapshotMap.has(now)) return; // O(1) dedup check
+
+                    const strikeMap = new Map();
+                    livePayload.strikes.forEach(s => {
+                        strikeMap.set(s.strike, {
+                            ...s,
+                            timestamp: now,
+                            ticker: state.selectedTicker,
+                            naive_gamma: (s.put_gamma_vol || 0) - (s.call_gamma_vol || 0)
+                        });
+                    });
+
+                    state.snapshotMap.set(now, {
+                        price: livePayload.price,
+                        strikes: strikeMap
+                    });
+                    state.currentPrice = livePayload.price;
+                    state.uniqueTimestamps.push(now);
+
+                    // Wipe liveSnapshot — snapshotMap is the source of truth
+                    state.liveSnapshot = [];
+                    state.liveSnapshotByStrike = new Map();
+                    clearHistoricalPointsCache();
+
+                    if (!state.isRewind) {
+                        state.rewindIdx = state.uniqueTimestamps.length - 1;
+                    }
+
+                    syncEl.textContent = new Date(rawTs).toLocaleTimeString('en-US', { timeZone: 'America/New_York' });
+
+                    if (!state.isPlaying) {
+                        scheduleRefresh({ stats: true, tick: false });
+                    }
+                }
+
+                // Handle Notification events
+                if (livePayload && livePayload.sse_type === 'notification') {
+                    // Prepend to list (newest first)
+                    state.notifications.unshift(livePayload);
+                    if (state.notifications.length > 100) state.notifications.length = 100;
+                    // Update UI if we're not in a historical date (live)
+                    if (!state.isRewind) {
+                        renderNotifications();
+                    }
+                }
+            };
+        }
+
+        const _domCache = new Map();
+        function getEl(id) {
+            let el = _domCache.get(id);
+            if (!el) {
+                el = document.getElementById(id);
+                if (el) _domCache.set(id, el);
+            }
+            return el;
+        }
+
+        function setCachedText(id, text) {
+            const el = getEl(id);
+            if (el && el.textContent !== text) {
+                el.textContent = text;
+            }
+        }
+
+        function updateStats() {
+            const snapshot = getCurrentSnapshot();
+            const rows = snapshot.strikes.values();
+            const price = snapshot.price || state.currentPrice;
+
+            let maxG = 0;
+            let maxGStrike = 0;
+            let totalD = 0;
+
+            for (const d of rows) {
+                const val = Math.abs(d.dealer_gamma_vol || 0);
+                if (val > maxG) {
+                    maxG = val;
+                    maxGStrike = d.strike;
+                }
+                totalD += (d.dealer_delta_vol || 0);
+            }
+
+            setCachedText('stat-price', formatUSD(price));
+            setCachedText('stat-ticker', state.selectedTicker);
+            setCachedText('stat-max-gamma', formatUSD(maxGStrike));
+            setCachedText('stat-total-delta', formatCompact(totalD));
+        }
+
+        function getCurrentSnapshot() {
+            if (state.uniqueTimestamps.length === 0) return { price: 0, strikes: new Map() };
+            const isAtLatest = state.rewindIdx === state.uniqueTimestamps.length - 1;
+            if (isAtLatest && state.liveSnapshotByStrike.size > 0) {
+                return { price: state.currentPrice, strikes: state.liveSnapshotByStrike };
+            }
+            const ts = state.uniqueTimestamps[state.rewindIdx];
+            return state.snapshotMap.get(ts) || { price: 0, strikes: new Map() };
+        }
+
+        function getStrikesForChart(snapshot) {
+            if (!snapshot || snapshot.strikes.size === 0) return [];
+
+            const price = snapshot.price || state.currentPrice;
+            const strikes = Array.from(snapshot.strikes.keys()).sort((a, b) => a - b);
+
+            let closestIdx = 0;
+            let minDiff = Infinity;
+            strikes.forEach((s, i) => {
+                const diff = Math.abs(s - price);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    closestIdx = i;
+                }
+            });
+
+            const half = Math.floor(state.strikeCount / 2);
+            let start = Math.max(0, closestIdx - half);
+            let end = Math.min(strikes.length - 1, start + state.strikeCount - 1);
+
+            if (end - start < state.strikeCount - 1) {
+                start = Math.max(0, end - state.strikeCount + 1);
+            }
+
+            return strikes.slice(start, end + 1).sort((a, b) => b - a); // Descending for Y axis
+        }
+
+        function getHistoricalPoints(metric, strikes) {
+            if (state.uniqueTimestamps.length < 2) return [];
+
+            const currentTs = state.uniqueTimestamps[state.rewindIdx];
+            // Faster cache key: avoid stringifying the entire strikes array
+            const cacheKey = `${metric}_${currentTs}_${strikes[0]}_${strikes[strikes.length - 1]}_${strikes.length}_${state.activeIntervals.join(',')}`;
+
+            const cached = state.historicalPointsCache.get(cacheKey);
+            if (cached) return cached;
+
+            const intervals = historyIntervals;
+            const points = [];
+            const strikeSet = new Set(strikes);
+
+            intervals.forEach(mins => {
+                if (!state.activeIntervals.includes(mins)) return;
+
+                const targetTs = currentTs - (mins * 60 * 1000);
+
+                // Optimized search for closest timestamp using the fact it's sorted
+                let closestTs = state.uniqueTimestamps[0];
+                let minDiff = Math.abs(state.uniqueTimestamps[0] - targetTs);
+
+                // For small arrays, forEach is fine, but for large arrays we could binary search.
+                // Given the typical number of snapshots (~500 for a day at 1m), this loop is okay if cache hits are high.
+                for (let i = state.uniqueTimestamps.length - 1; i >= 0; i--) {
+                    const ts = state.uniqueTimestamps[i];
+                    const d = Math.abs(ts - targetTs);
+                    if (d < minDiff) {
+                        minDiff = d;
+                        closestTs = ts;
+                    } else if (ts < targetTs - minDiff) {
+                        // We're getting farther away, can stop early
+                        break;
+                    }
+                }
+
+                if (Math.abs(closestTs - currentTs) < 30000) return;
+
+                const entry = state.snapshotMap.get(closestTs);
+                if (!entry) return;
+
+                strikes.forEach(s => {
+                    const d = entry.strikes.get(s);
+                    if (d) {
+                        points.push({
+                            x: d[metric],
+                            y: d.strike,
+                            timeLabel: `${mins}m ago`,
+                            mins: mins
+                        });
+                    }
+                });
+            });
+
+            state.historicalPointsCache.set(cacheKey, points);
+            return points;
+        }
+
+        function clearHistoricalPointsCache() {
+            state.historicalPointsCache.clear();
+        }
+
+        function scheduleRefresh({ stats = false, notifications = false, tick = false } = {}) {
+            state.pendingRefreshStats = state.pendingRefreshStats || stats;
+            state.pendingRefreshNotifications = state.pendingRefreshNotifications || notifications;
+            state.pendingRefreshTick = state.pendingRefreshTick || tick;
+            if (state.pendingRefreshTimer) return;
+
+            const delay = state.activeTab === 'historical' ? 800 : 100;
+            state.pendingRefreshTimer = setTimeout(() => {
+                state.pendingRefreshTimer = null;
+                const shouldUpdateStats = state.pendingRefreshStats;
+                const shouldUpdateNotifications = state.pendingRefreshNotifications;
+                const isTickUpdate = state.pendingRefreshTick;
+                state.pendingRefreshStats = false;
+                state.pendingRefreshNotifications = false;
+                state.pendingRefreshTick = false;
+
+                updateCharts({ shouldRenderNotifications: shouldUpdateNotifications, isTickUpdate });
+                if (shouldUpdateStats) updateStats();
+            }, delay);
+        }
+
+        function updateCharts({ shouldRenderNotifications = true, isTickUpdate = false } = {}) {
+            const snapshot = getCurrentSnapshot();
+            if (snapshot.strikes.size === 0) return;
+            const strikes = getStrikesForChart(snapshot);
+            if (strikes.length === 0) return;
+
+            const price = snapshot.price || state.currentPrice;
+
+            if (state.activeTab === 'spot') {
+                // Destroy historical charts to prevent memory leaks in inactive view
+                const histIds = ['chart-hist-gamma', 'chart-hist-delta', 'chart-hist-heatmap', 'chart-hist-charm-heatmap'];
+                histIds.forEach(id => {
+                    if (state.charts[id]) {
+                        state.charts[id].destroy();
+                        delete state.charts[id];
+                    }
+                });
+
+                renderSpotChart('chart-spot-gamma', 'Dealer Gamma Exposure', strikes, snapshot.strikes,
+                    ['dealer_gamma_oi', 'dealer_gamma_vol', 'call_gamma_vol', 'put_gamma_vol', 'naive_gamma'], price, isTickUpdate);
+                renderSpotChart('chart-spot-delta', 'Dealer Delta Exposure', strikes, snapshot.strikes,
+                    ['dealer_delta_oi', 'dealer_delta_vol', 'call_delta_vol', 'put_delta_vol'], price, isTickUpdate);
+                // renderSpotChart('chart-spot-charm', 'Dealer Charm Exposure', strikes, snapshot.strikes,
+                //     ['dealer_charm_oi', 'dealer_charm_vol', 'call_charm_vol', 'put_charm_vol'], price, isTickUpdate);
+            } else if (state.activeTab === 'historical') {
+                // Destroy spot charts to prevent memory leaks in inactive view
+                const spotIds = ['chart-spot-gamma', 'chart-spot-delta', 'chart-spot-charm'];
+                spotIds.forEach(id => {
+                    if (state.charts[id]) {
+                        state.charts[id].destroy();
+                        delete state.charts[id];
+                    }
+                });
+
+                renderTimelineChart('chart-hist-gamma', 'Dealer Gamma Exposure', 'dealer_gamma_vol', strikes, isTickUpdate);
+                renderTimelineChart('chart-hist-delta', 'Dealer Delta Exposure', 'dealer_delta_vol', strikes, isTickUpdate);
+                // renderTimelineChart('chart-hist-charm', 'Dealer Charm Exposure', 'dealer_charm_vol', strikes, isTickUpdate);
+                renderHeatmapChart('chart-hist-heatmap', 'Gamma Heatmap (Strike vs Time)', 'dealer_gamma_vol', strikes, isTickUpdate);
+                renderHeatmapChart('chart-hist-charm-heatmap', 'Charm Heatmap (Strike vs Time)', 'dealer_charm_vol', strikes, isTickUpdate);
+            }
+
+            if (shouldRenderNotifications) {
+                renderNotifications(); // Trigger an update to reveal notifications as we scroll
+            }
+        }
+
+        const historyIntervals = [1, 5, 10, 15, 30];
+        const historySymbols = ['circle', 'diamond', 'square', 'triangle', 'triangle-down'];
+
+        function renderSpotChart(containerId, title, strikes, rowByStrike, allMetrics, currentPrice, isTickUpdate = false) {
+            const el = getEl(containerId);
+            if (!el) return;
+
+            const isGamma = containerId.includes('gamma');
+            const isDelta = containerId.includes('delta');
+            const activeList = isGamma ? state.gammaMetrics : (isDelta ? state.deltaMetrics : state.charmMetrics);
+
+            const strikeIndex = new Map(strikes.map((strike, index) => [strike, index]));
+
+            // Calculate number of visible metrics to match Highcharts' internal dodging
+            const visibleMetrics = allMetrics.filter(m => activeList.includes(m));
+            const N = visibleMetrics.length;
+
+            const series = [];
+
+            allMetrics.forEach((m) => {
+                const isVisible = activeList.includes(m);
+                const data = strikes.map(s => {
+                    const row = rowByStrike.get(s);
+                    return row ? row[m] : 0;
+                });
+
+                // Highcharts shifts grouped bars based on visibility. 
+                // We must match this offset for our scatter markers.
+                let offset = 0;
+                if (isVisible) {
+                    const vIdx = visibleMetrics.indexOf(m);
+                    offset = N > 1 ? (vIdx - (N - 1) / 2) * (0.6 / N) : 0;
+                }
+
+                series.push({
+                    name: metricLabels[m],
+                    type: 'bar',
+                    data: data,
+                    color: metricColors[m],
+                    opacity: 0.8,
+                    borderRadius: 4,
+                    visible: isVisible,
+                    metric: m
+                });
+
+                if (isVisible) {
+                    // Only compute historical points if this isn't a tick update OR if it's the first time 
+                    // (if it's a tick update and the chart already exists with correct strikes, we skip scatter setData later)
+                    let scatterData = [];
+                    if (!isTickUpdate) {
+                        const histPoints = getHistoricalPoints(m, strikes);
+                        if (histPoints.length > 0) {
+                            scatterData = histPoints.map(p => {
+                                const intervalIdx = historyIntervals.indexOf(p.mins);
+                                return {
+                                    x: strikeIndex.get(p.y) + offset,
+                                    y: p.x,
+                                    timeLabel: p.timeLabel,
+                                    marker: {
+                                        symbol: historySymbols[intervalIdx] || 'circle',
+                                        radius: 4
+                                    }
+                                };
+                            });
+                        }
+                    }
+
+                    series.push({
+                        name: `${metricLabels[m]} History`,
+                        type: 'scatter',
+                        data: scatterData,
+                        color: metricColors[m],
+                        marker: {
+                            lineWidth: 1,
+                            lineColor: '#ffffff'
+                        },
+                        linkedTo: ':previous',
+                        tooltip: {
+                            pointFormat: '<b>{point.timeLabel}</b>: {point.y:,.2f}<br/>'
+                        }
+                    });
+                }
+            });
+
+
+            // Handle Bottom Legend (Time Snapshots)
+            const type = containerId.split('-').pop(); // gamma, delta, or gex
+            const sideLegendId = `legend-${type}`;
+            const sideLegend = document.getElementById(sideLegendId);
+            if (sideLegend) {
+                sideLegend.classList.remove('hidden');
+                let html = '<div class="side-legend-title">Snapshots:</div>';
+                historyIntervals.forEach((mins, i) => {
+                    const symbol = historySymbols[i];
+                    const symMap = { 'circle': '●', 'diamond': '◆', 'square': '■', 'triangle': '▲', 'triangle-down': '▼' };
+                    const isActive = state.activeIntervals.includes(mins);
+                    html += `
+                        <div class="side-legend-item ${isActive ? '' : 'inactive'}" data-mins="${mins}" 
+                             style="cursor: pointer; opacity: ${isActive ? 1 : 0.4}; transition: all 0.2s;">
+                            <span class="marker-icon">${symMap[symbol] || '●'}</span>
+                            <span style="white-space: nowrap;">${mins}m</span>
+                        </div>
+                    `;
+                });
+                sideLegend.innerHTML = html;
+            }
+
+            // Calculate price line position on categorical axis
+            let priceLineVal = -1;
+            if (strikes.length > 1) {
+                for (let i = 0; i < strikes.length - 1; i++) {
+                    const s1 = strikes[i];
+                    const s2 = strikes[i + 1];
+                    if (currentPrice <= s1 && currentPrice >= s2) {
+                        const fraction = (s1 - currentPrice) / (s1 - s2);
+                        priceLineVal = i + fraction;
+                        break;
+                    }
+                }
+                if (priceLineVal === -1) {
+                    if (currentPrice > strikes[0]) priceLineVal = 0;
+                    else if (currentPrice < strikes[strikes.length - 1]) priceLineVal = strikes.length - 1;
+                }
+            }
+
+            const existingChart = state.charts[containerId];
+
+            if (existingChart) {
+                let strikesMatch = true;
+                if (existingChart.xAxis && existingChart.xAxis[0]) {
+                    const cats = existingChart.xAxis[0].categories;
+                    if (!cats || cats.length !== strikes.length) {
+                        strikesMatch = false;
+                    } else {
+                        for (let i = 0; i < cats.length; i++) {
+                            if (cats[i] !== formatUSD(strikes[i])) {
+                                strikesMatch = false;
+                                break;
+                            }
+                        }
+                    }
+                } else {
+                    strikesMatch = false;
+                }
+
+                if (strikesMatch && existingChart.series.length === series.length) {
+                    let seriesMatch = true;
+                    for (let i = 0; i < series.length; i++) {
+                        if (existingChart.series[i].name !== series[i].name || existingChart.series[i].type !== series[i].type) {
+                            seriesMatch = false;
+                            break;
+                        }
+                    }
+
+                    if (seriesMatch) {
+                        existingChart.series.forEach((s, i) => {
+                            // SKIP updating scatter (history) series during tick updates to save CPU.
+                            // History only changes when a full snapshot arrives or strikes shift.
+                            if (isTickUpdate && s.type === 'scatter') return;
+                            s.setData(series[i].data, false, false, false);
+                        });
+
+                        existingChart.xAxis[0].removePlotLine('price-line');
+                        if (priceLineVal !== -1) {
+                            existingChart.xAxis[0].addPlotLine({
+                                id: 'price-line',
+                                color: '#a952ff',
+                                dashStyle: 'Dash',
+                                width: 2,
+                                value: priceLineVal,
+                                zIndex: 5,
+                                label: {
+                                    text: `Price: ${formatUSD(currentPrice)}`,
+                                    align: 'left',
+                                    style: { color: '#a952ff' }
+                                }
+                            });
+                        }
+
+                        existingChart.redraw(false);
+                        return;
+                    }
+                }
+            }
+
+            if (existingChart) existingChart.destroy();
+
+            state.charts[containerId] = Highcharts.chart(el, {
+                chart: { type: 'bar', height: 1000 },
+                title: { text: title },
+                legend: {
+                    layout: 'horizontal',
+                    align: 'center',
+                    verticalAlign: 'top',
+                    enabled: true,
+                    itemStyle: { color: '#e2e8f0' },
+                    itemHoverStyle: { color: '#ffffff' }
+                },
+                xAxis: {
+                    categories: strikes.map(s => formatUSD(s)),
+                    title: { text: 'Strike Price' },
+                    plotLines: priceLineVal !== -1 ? [{
+                        id: 'price-line',
+                        color: '#a952ff',
+                        dashStyle: 'Dash',
+                        width: 2,
+                        value: priceLineVal,
+                        zIndex: 5,
+                        label: {
+                            text: `Price: ${formatUSD(currentPrice)}`,
+                            align: 'left',
+                            style: { color: '#a952ff' }
+                        }
+                    }] : []
+                },
+                yAxis: {
+                    title: { text: `${title} (${type === 'gamma' ? '$ / 1% Move' : '$'})` }
+                },
+                plotOptions: {
+                    bar: {
+                        grouping: true,
+                        pointPadding: 0.1,
+                        groupPadding: 0.2,
+                        borderWidth: 0,
+                        events: {
+                            legendItemClick: function () {
+                                const m = this.options.metric;
+                                if (!m) return true; // Let snapshots/lines toggle normally if they are in legend
+
+                                const isGamma = containerId.includes('gamma');
+                                const isDelta = containerId.includes('delta');
+                                const activeList = isGamma ? state.gammaMetrics : (isDelta ? state.deltaMetrics : state.charmMetrics);
+
+                                if (activeList.includes(m)) {
+                                    if (activeList.length > 1) {
+                                        if (isGamma) state.gammaMetrics = state.gammaMetrics.filter(i => i !== m);
+                                        else if (containerId.includes('delta')) state.deltaMetrics = state.deltaMetrics.filter(i => i !== m);
+                                        else state.charmMetrics = state.charmMetrics.filter(i => i !== m);
+                                    } else {
+                                        return false; // Prevent hiding the last metric
+                                    }
+                                } else {
+                                    activeList.push(m);
+                                }
+
+                                saveMetricsState();
+                                updateCharts();
+                                return false; // Prevent default so our re-render handles the state
+                            }
+                        }
+                    }
+                },
+                series: series,
+                tooltip: {
+                    shared: true,
+                }
+            });
+        }
+
+        function getStrikeColor(strike) {
+            const colors = Highcharts.getOptions().colors;
+            const str = strike.toString();
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0; // Convert to 32bit integer
+            }
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        function getDownsampledTimestamps(timestamps, cutoff, latestTs) {
+            const minuteMap = new Map();
+            for (const ts of timestamps) {
+                if (ts > latestTs) break;
+                if (ts < cutoff) continue;
+
+                const minute = Math.floor(ts / (60 * 1000));
+                // Only keep the LATEST data point for each minute bucket
+                minuteMap.set(minute, ts);
+            }
+            return Array.from(minuteMap.values()).sort((a, b) => a - b);
+        }
+
+        function renderTimelineChart(containerId, title, metric, strikes, isTickUpdate = false) {
+            const el = getEl(containerId);
+            if (!el) return;
+
+            const existingChart = state.charts[containerId];
+            const sortedStrikes = Array.from(strikes).sort((a, b) => a - b);
+            const latestTs = state.uniqueTimestamps[state.rewindIdx];
+
+            const cutoff = state.timeframe !== 'all' ? latestTs - (parseInt(state.timeframe) * 60 * 1000) : -Infinity;
+            const validTimestamps = getDownsampledTimestamps(state.uniqueTimestamps, cutoff, latestTs);
+
+            // 1. Fast Path (if buckets haven't changed)
+            if (existingChart && existingChart.series.length === sortedStrikes.length) {
+                const existingDataLen = existingChart.series[0].options.data.length;
+                if (existingDataLen === validTimestamps.length) {
+                    let strikesMatch = true;
+                    for (let i = 0; i < existingChart.series.length; i++) {
+                        if (existingChart.series[i].name !== formatUSD(sortedStrikes[i])) {
+                            strikesMatch = false;
+                            break;
+                        }
+                    }
+
+                    if (strikesMatch) {
+                        if (isTickUpdate && state.liveSnapshotByStrike.size > 0) {
+                            existingChart.series.forEach((s, i) => {
+                                const strike = sortedStrikes[i];
+                                const row = state.liveSnapshotByStrike.get(strike);
+                                if (row) {
+                                    const points = s.options.data;
+                                    if (points && points.length > 0) {
+                                        points[points.length - 1] = [latestTs, row[metric]];
+                                        s.setData(points, false, false, false);
+                                    }
+                                }
+                            });
+                            existingChart.redraw(false);
+                            return;
+                        }
+                    }
+                }
+            }
+
+            // 2. Full Data Collection
+            const dataByStrike = new Map();
+            sortedStrikes.forEach(s => dataByStrike.set(s, []));
+
+            for (const ts of validTimestamps) {
+                const isAtLatest = ts === state.uniqueTimestamps[state.uniqueTimestamps.length - 1];
+                if (isAtLatest && state.liveSnapshotByStrike.size > 0) {
+                    sortedStrikes.forEach(s => {
+                        const row = state.liveSnapshotByStrike.get(s);
+                        if (row) dataByStrike.get(s).push([ts, row[metric]]);
+                    });
+                } else {
+                    const entry = state.snapshotMap.get(ts);
+                    if (entry) {
+                        sortedStrikes.forEach(s => {
+                            const row = entry.strikes.get(s);
+                            if (row) dataByStrike.get(s).push([ts, row[metric]]);
+                        });
+                    }
+                }
+            }
+
+            const series = sortedStrikes.map(strike => ({
+                name: formatUSD(strike),
+                data: dataByStrike.get(strike),
+                color: getStrikeColor(strike),
+                lineWidth: 2,
+                marker: { enabled: false },
+                tooltip: { valueDecimals: 2 },
+                boostThreshold: 500
+            }));
+
+            if (existingChart) existingChart.destroy();
+
+            state.charts[containerId] = Highcharts.chart(el, {
+                chart: {
+                    type: 'line',
+                    height: 800,
+                    animation: false,
+                    backgroundColor: 'transparent'
+                },
+                title: {
+                    text: title,
+                    style: { color: '#f8fafc' }
+                },
+                xAxis: {
+                    type: 'datetime',
+                    title: { text: 'Time', style: { color: '#94a3b8' } },
+                    labels: {
+                        style: { color: '#94a3b8' },
+                        formatter: function () { return Highcharts.dateFormat('%H:%M', this.value); }
+                    },
+                    lineColor: '#334155',
+                    tickColor: '#334155'
+                },
+                yAxis: {
+                    title: { text: 'Exposure', style: { color: '#94a3b8' } },
+                    labels: { style: { color: '#94a3b8' } },
+                    gridLineColor: '#1e293b'
+                },
+                legend: {
+                    itemStyle: { color: '#e2e8f0' },
+                    itemHoverStyle: { color: '#ffffff' }
+                },
+                series: series,
+                tooltip: {
+                    xDateFormat: '%H:%M:%S',
+                    shared: true,
+                    backgroundColor: '#1e293b',
+                    style: { color: '#f8fafc' },
+                    borderColor: '#334155'
+                },
+                plotOptions: {
+                    line: {
+                        states: {
+                            hover: { lineWidthPlus: 2 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderHeatmapChart(containerId, title, metric, strikes, isTickUpdate = false) {
+            const el = getEl(containerId);
+            if (!el) return;
+
+            const latestTs = state.uniqueTimestamps[state.rewindIdx];
+            const hmStrikes = Array.from(strikes).sort((a, b) => a - b);
+            const existingChart = state.charts[containerId];
+
+            let strikesMatch = true;
+            if (existingChart && existingChart.yAxis && existingChart.yAxis[0]) {
+                const cats = existingChart.yAxis[0].categories;
+                if (!cats || cats.length !== hmStrikes.length) {
+                    strikesMatch = false;
+                } else {
+                    for (let i = 0; i < cats.length; i++) {
+                        if (cats[i] !== formatUSD(hmStrikes[i])) {
+                            strikesMatch = false;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                strikesMatch = false;
+            }
+
+            // 1. Fast Path
+            if (isTickUpdate && existingChart && strikesMatch && existingChart.series[0]) {
+                const heatmapData = existingChart.series[0].options.data;
+                const priceData = existingChart.series[1] ? existingChart.series[1].options.data : [];
+
+                const cutoff = state.timeframe !== 'all' ? latestTs - (parseInt(state.timeframe) * 60 * 1000) : -Infinity;
+                const validTimestamps = getDownsampledTimestamps(state.uniqueTimestamps, cutoff, latestTs);
+
+                // Only fast path if the number of buckets (minutes) hasn't changed.
+                if (heatmapData.length / hmStrikes.length === validTimestamps.length) {
+                    const ts = validTimestamps[validTimestamps.length - 1];
+
+                    const filteredHeatmap = heatmapData.filter(d => d[0] !== ts);
+                    const filteredPrice = priceData.filter(p => p.x !== ts);
+
+                    let strikesMap = state.liveSnapshotByStrike;
+                    let price = state.currentPrice;
+
+                    if (strikesMap.size > 0) {
+                        let yVal = null;
+                        if (hmStrikes.length > 1) {
+                            for (let i = 0; i < hmStrikes.length - 1; i++) {
+                                if (price >= hmStrikes[i] && price <= hmStrikes[i + 1]) {
+                                    yVal = i + (price - hmStrikes[i]) / (hmStrikes[i + 1] - hmStrikes[i]);
+                                    break;
+                                }
+                            }
+                        }
+                        filteredPrice.push({ x: ts, y: yVal, price: price });
+
+                        let sliceMaxAbs = 0;
+                        hmStrikes.forEach(s => {
+                            const row = strikesMap.get(s);
+                            if (row) {
+                                const val = Math.abs(row[metric] || 0);
+                                if (val > sliceMaxAbs) sliceMaxAbs = val;
+                            }
+                        });
+                        if (sliceMaxAbs === 0) sliceMaxAbs = 1;
+
+                        hmStrikes.forEach((s, yIdx) => {
+                            const row = strikesMap.get(s);
+                            if (row) {
+                                const rawVal = row[metric] || 0;
+                                const normVal = rawVal / sliceMaxAbs;
+                                const value = state.normalizedHeatmap ? normVal : rawVal;
+                                filteredHeatmap.push([ts, yIdx, value, rawVal, normVal, ts]);
+                            }
+                        });
+
+                        existingChart.series[0].setData(filteredHeatmap, false, false, false);
+                        if (existingChart.series[1]) existingChart.series[1].setData(filteredPrice, false, false, false);
+                        existingChart.redraw(false);
+                    }
+                    return;
+                }
+            }
+
+            // Fallback: Full Render Required
+            const cutoff = state.timeframe !== 'all'
+                ? latestTs - (parseInt(state.timeframe) * 60 * 1000)
+                : -Infinity;
+
+            const validTimestamps = getDownsampledTimestamps(state.uniqueTimestamps, cutoff, latestTs);
+
+            if (validTimestamps.length === 0 || hmStrikes.length === 0) {
+                if (existingChart) existingChart.destroy();
+                delete state.charts[containerId];
+                return;
+            }
+
+            let heatmapData = [];
+            let priceData = [];
+            let globalMaxAbs = 0;
+            for (let i = 0; i < validTimestamps.length; i++) {
+                const ts = validTimestamps[i];
+                const isAtLatest = ts === state.uniqueTimestamps[state.uniqueTimestamps.length - 1];
+
+                let strikesMap, price;
+                if (isAtLatest && state.liveSnapshotByStrike.size > 0) {
+                    strikesMap = state.liveSnapshotByStrike;
+                    price = state.currentPrice;
+                } else {
+                    const entry = state.snapshotMap.get(ts);
+                    if (!entry) continue;
+                    strikesMap = entry.strikes;
+                    price = entry.price;
+                }
+
+                // Add Price Line point
+                let yVal = null;
+                if (hmStrikes.length > 1) {
+                    for (let i = 0; i < hmStrikes.length - 1; i++) {
+                        if (price >= hmStrikes[i] && price <= hmStrikes[i + 1]) {
+                            yVal = i + (price - hmStrikes[i]) / (hmStrikes[i + 1] - hmStrikes[i]);
+                            break;
+                        }
+                    }
+                }
+                priceData.push({ x: ts, y: yVal, price: price });
+
+                // Find local slice max for normalization
+                let sliceMaxAbs = 0;
+                hmStrikes.forEach(s => {
+                    const r = strikesMap.get(s);
+                    if (r) {
+                        const v = Math.abs(r[metric] || 0);
+                        if (v > sliceMaxAbs) sliceMaxAbs = v;
+                    }
+                });
+                if (sliceMaxAbs === 0) sliceMaxAbs = 1;
+                if (sliceMaxAbs > globalMaxAbs) globalMaxAbs = sliceMaxAbs;
+
+                // Push heatmap cells
+                hmStrikes.forEach((s, yIdx) => {
+                    const r = strikesMap.get(s);
+                    if (r) {
+                        const rawVal = r[metric] || 0;
+                        const normVal = rawVal / sliceMaxAbs;
+                        const value = state.normalizedHeatmap ? normVal : rawVal;
+                        heatmapData.push([ts, yIdx, value, rawVal, normVal, ts]);
+                    }
+                });
+            }
+
+            if (globalMaxAbs === 0) globalMaxAbs = 1;
+            const axisMin = state.normalizedHeatmap ? -1 : -globalMaxAbs;
+            const axisMax = state.normalizedHeatmap ? 1 : globalMaxAbs;
+            const labelFormatter = state.normalizedHeatmap
+                ? function () { return (this.value * 100).toFixed(0) + '%'; }
+                : function () { return formatCompact(this.value); };
+
+            if (existingChart && strikesMatch) {
+                existingChart.series[0].setData(heatmapData, false, false, false);
+                if (existingChart.series[1]) existingChart.series[1].setData(priceData, false, false, false);
+                existingChart.colorAxis[0].update({
+                    min: axisMin,
+                    max: axisMax,
+                    labels: { formatter: labelFormatter },
+                    startOnTick: false,
+                    endOnTick: false
+                }, false);
+                existingChart.redraw(false);
+                return;
+            }
+
+            if (existingChart) existingChart.destroy();
+
+            state.charts[containerId] = Highcharts.chart(el, {
+                chart: {
+                    backgroundColor: 'transparent',
+                    animation: false
+                },
+                title: {
+                    text: title,
+                    style: { color: '#f8fafc' }
+                },
+                xAxis: {
+                    type: 'datetime',
+                    title: { text: 'Time', style: { color: '#94a3b8' } },
+                    labels: {
+                        style: { color: '#94a3b8' },
+                        formatter: function () { return Highcharts.dateFormat('%H:%M', this.value); }
+                    },
+                    lineColor: '#334155',
+                    tickColor: '#334155',
+                    crosshair: {
+                        color: 'rgba(255, 255, 255, 0.2)',
+                        dashStyle: 'dash'
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    min: 0,
+                    max: hmStrikes.length ? hmStrikes.length - 1 : 0,
+                    categories: hmStrikes.map(s => formatUSD(s)),
+                    title: { text: 'Strike', style: { color: '#94a3b8' } },
+                    labels: { style: { color: '#94a3b8' } },
+                    gridLineColor: '#1e293b'
+                },
+                colorAxis: {
+                    stops: [
+                        [0, '#ef4444'],    // Negative bound
+                        [0.5, 'rgba(30, 32, 47, 0)'], // Neutral (transparent-ish)
+                        [1, '#10b981']     // Positive bound
+                    ],
+                    min: axisMin,
+                    max: axisMax,
+                    startOnTick: false,
+                    endOnTick: false,
+                    labels: {
+                        style: { color: '#94a3b8' },
+                        formatter: labelFormatter
+                    }
+                },
+                legend: {
+                    align: 'right',
+                    layout: 'vertical',
+                    margin: 0,
+                    verticalAlign: 'middle',
+                    symbolHeight: 280
+                },
+                series: [{
+                    type: 'heatmap',
+                    colsize: 60000, // 1 minute buckets
+                    keys: ['x', 'y', 'value', 'rawVal', 'normVal', 'timestamp'], // Map simple arrays back to object properties
+                    name: metricLabels[metric] || metric,
+                    borderWidth: 0,
+                    data: heatmapData,
+                    zIndex: 1,
+                    tooltip: {
+                        headerFormat: '<b>{series.name}</b><br/>',
+                        pointFormatter: function () {
+                            const strength = (this.normVal * 100).toFixed(0);
+                            return `Time: ${Highcharts.dateFormat('%H:%M:%S', this.timestamp)}<br/>` +
+                                `Strike: ${this.series.yAxis.categories[this.y]}<br/>` +
+                                `Value: ${formatCompact(this.rawVal)}<br/>` +
+                                `Strength (Rel): ${strength}%`;
+                        }
+                    }
+                }, {
+                    type: 'line',
+                    name: 'Price',
+                    data: priceData.map(p => ({ x: p.x, y: p.y, price: p.price })),
+                    color: '#a952ff',
+                    lineWidth: 3,
+                    zIndex: 2,
+                    marker: { enabled: false },
+                    tooltip: {
+                        pointFormatter: function () {
+                            return `<b>Price:</b> ${formatUSD(this.price)}`;
+                        }
+                    }
+                }]
+            });
+        }
+
+        // --- Event Listeners ---
+        document.getElementById('ticker-select').addEventListener('change', (e) => {
+            state.selectedTicker = e.target.value;
+            loadData().then(() => setupSSE());
+        });
+
+        document.getElementById('rewind-checkbox').addEventListener('change', (e) => {
+            state.isRewind = e.target.checked;
+            document.getElementById('date-select-wrap').classList.toggle('hidden', !state.isRewind);
+            document.getElementById('rewind-controls').classList.toggle('hidden', !state.isRewind);
+
+            if (state.isRewind) {
+                if (window.eventSource) window.eventSource.close();
+            } else {
+                setupSSE();
+            }
+            loadData();
+        });
+
+        document.getElementById('date-select').addEventListener('change', (e) => {
+            state.selectedDate = e.target.value;
+            loadData();
+        });
+
+        document.getElementById('timeframe-select').addEventListener('change', (e) => {
+            state.timeframe = e.target.value;
+            updateCharts();
+        });
+
+        document.getElementById('strike-slider').addEventListener('input', (e) => {
+            state.strikeCount = parseInt(e.target.value);
+            document.getElementById('strike-count-val').textContent = state.strikeCount;
+            saveMetricsState();
+            updateCharts();
+        });
+
+        document.getElementById('heatmap-norm-checkbox').addEventListener('change', (e) => {
+            state.normalizedHeatmap = e.target.checked;
+            saveMetricsState();
+            updateCharts();
+        });
+
+        document.getElementById('rewind-slider').addEventListener('input', (e) => {
+            state.rewindIdx = parseInt(e.target.value);
+            updateRewindUI();
+            updateCharts();
+            updateStats();
+        });
+
+        function updateRewindUI() {
+            const tsLen = state.uniqueTimestamps.length;
+            const slider = getEl('rewind-slider');
+            const totalSnaps = getEl('total-snap-count');
+
+            if (slider) {
+                slider.max = tsLen - 1;
+                slider.value = state.rewindIdx;
+            }
+            if (totalSnaps) {
+                totalSnaps.textContent = tsLen;
+            }
+
+            if (state.uniqueTimestamps[state.rewindIdx]) {
+                const d = new Date(state.uniqueTimestamps[state.rewindIdx]);
+                const sliderLabel = getEl('rewind-slider-label');
+                if (sliderLabel) {
+                    sliderLabel.textContent = d.toLocaleTimeString('en-US', { timeZone: 'America/New_York' });
+                }
+            }
+        }
+
+        // Playback
+        let playInterval;
+        document.getElementById('btn-play').addEventListener('click', () => {
+            state.isPlaying = !state.isPlaying;
+            const btn = document.getElementById('btn-play');
+            btn.textContent = state.isPlaying ? '⏹️' : '▶️';
+            btn.classList.toggle('active', state.isPlaying);
+
+            if (state.isPlaying) {
+                playInterval = setInterval(() => {
+                    if (state.rewindIdx < state.uniqueTimestamps.length - 1) {
+                        state.rewindIdx++;
+                        updateRewindUI();
+                        updateCharts();
+                        updateStats();
+                    } else {
+                        state.isPlaying = false;
+                        btn.textContent = '▶️';
+                        btn.classList.remove('active');
+                        clearInterval(playInterval);
+                    }
+                }, 300);
+            } else {
+                clearInterval(playInterval);
+            }
+        });
+
+        document.getElementById('btn-back').addEventListener('click', () => {
+            if (state.rewindIdx > 0) {
+                state.rewindIdx--;
+                updateRewindUI();
+                updateCharts();
+                updateStats();
+            }
+        });
+
+        document.getElementById('btn-forward').addEventListener('click', () => {
+            if (state.rewindIdx < state.uniqueTimestamps.length - 1) {
+                state.rewindIdx++;
+                updateRewindUI();
+                updateCharts();
+                updateStats();
+            }
+        });
+
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                state.activeTab = tab.dataset.tab;
+
+                document.getElementById('view-spot').classList.toggle('hidden', state.activeTab !== 'spot');
+                document.getElementById('view-historical').classList.toggle('hidden', state.activeTab !== 'historical');
+
+                saveMetricsState();
+                updateCharts();
+            });
+        });
+
+        // Initialize UI from state (Tab)
+        if (state.activeTab) {
+            const activeTabEl = document.querySelector(`.tab[data-tab="${state.activeTab}"]`);
+            if (activeTabEl) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                activeTabEl.classList.add('active');
+                document.getElementById('view-spot').classList.toggle('hidden', state.activeTab !== 'spot');
+                document.getElementById('view-historical').classList.toggle('hidden', state.activeTab !== 'historical');
+            }
+        }
+
+        // Sidebar Toggle
+        document.getElementById('sidebar-toggle').addEventListener('click', () => {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('sidebar-toggle');
+            sidebar.classList.toggle('collapsed');
+
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.textContent = '▶';
+            } else {
+                toggleBtn.textContent = '◀';
+            }
+
+            // Highcharts need to be manually reflowed when the container size changes
+            setTimeout(() => {
+                Highcharts.charts.forEach(chart => {
+                    if (chart) chart.reflow();
+                });
+            }, 350); // Match transition time
+        });
+
+        // Legend Click Delegation
+        document.addEventListener('click', (e) => {
+            const item = e.target.closest('.side-legend-item');
+            if (item && item.dataset.mins) {
+                const mins = parseInt(item.dataset.mins);
+                if (state.activeIntervals.includes(mins)) {
+                    state.activeIntervals = state.activeIntervals.filter(m => m !== mins);
+                } else {
+                    state.activeIntervals.push(mins);
+                }
+                saveMetricsState();
+                updateCharts();
+            }
+        });
+
+        function hideLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => overlay.style.display = 'none', 500);
+        }
+
+        function showLoading() {
+            const overlay = document.getElementById('loading-overlay');
+            overlay.style.display = 'flex';
+            overlay.style.opacity = '1';
+        }
+
+        // --- Start ---
+        init();
+    </script>
+</body>
+
+</html>

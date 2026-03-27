@@ -13,6 +13,9 @@ COPY requirements.txt ./
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Override streamlit-highcharts index.html with our custom version (enabling heatmap, etc.)
+COPY override/streamlit_highcharts/index.html /usr/local/lib/python3.11/site-packages/streamlit_highcharts/frontend/index.html
+
 COPY . .
 
 EXPOSE 8501
