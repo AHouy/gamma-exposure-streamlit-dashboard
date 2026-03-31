@@ -740,7 +740,7 @@ def create_highcharts_line(df, title, metric):
         "legend": {
             "itemStyle": { "color": "#e2e8f0" },
             "layout": 'vertical',
-            "align": 'right',
+            "align": 'bottom',
             "verticalAlign": 'middle'
         },
         "series": series,
