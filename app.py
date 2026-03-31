@@ -9,10 +9,16 @@ import urllib.parse
 import time
 import os
 import threading
+import requests
+import json
 
 st.set_page_config(page_title="Gamma Exposure Dashboard", layout="wide")
 
 st.title("Gamma Exposure Dashboard")
+
+# Google Sheets Configuration
+SHEET_ID = "1oe96VFlcWbeEMMKrMjxEroOxbH0wFG6LlCny1gJzc8Q"
+SHEET_GID = "1881582747"
 
 # Initialize session state for live data and animation
 if 'is_playing' not in st.session_state:
@@ -26,6 +32,7 @@ if 'normalized_heatmap' not in st.session_state:
 # --- Background Data Coordinator ---
 @st.cache_resource
 class DataCoordinator:
+
     def __init__(self):
         self.full_df = pd.DataFrame()
         self.last_row_count = 0
@@ -36,8 +43,6 @@ class DataCoordinator:
 
     def fetch_raw(self, offset):
         """Standard incremental fetch logic from Gviz."""
-        SHEET_ID = "1oe96VFlcWbeEMMKrMjxEroOxbH0wFG6LlCny1gJzc8Q"
-        SHEET_GID = "1881582747"
         if offset > 0:
             query = urllib.parse.quote(f"SELECT * OFFSET {offset}")
             url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={SHEET_GID}&tq={query}"
@@ -46,6 +51,17 @@ class DataCoordinator:
         
         # print(f"Background Fetch: {url}") # Log for debugging
         return pd.read_csv(url)
+
+    def get_count(self):
+        query = urllib.parse.quote("SELECT COUNT(A)")
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:json&gid={SHEET_GID}&tq={query}"
+        response = requests.get(url)
+        # GViz returns a wrapped payload that we need to clean for json.loads
+        content = response.text
+        start = content.find('{')
+        end = content.rfind('}') + 1
+        data = json.loads(content[start:end])
+        return data['table']['rows'][0]['c'][0]['v']
 
     def sync(self, force_sync=False):
         """Triggers a background sync task."""
@@ -59,6 +75,17 @@ class DataCoordinator:
         def _sync_task():
             self.is_syncing = True
             try:
+                count = self.get_count()
+                if count == 0:
+                    # If no data in the spreadsheet, it indicates a new trading day
+                    # Reset the dataframe and last row count
+                    self.error = "No data found in the sheet."
+                    self.full_df = pd.DataFrame()
+                    self.last_row_count = 0
+                    self.last_sync_timestamp = 0
+                    return
+                elif count == self.last_row_count:
+                    return
                 new_data_raw = self.fetch_raw(self.last_row_count)
                 if not new_data_raw.empty:
                     raw_count = len(new_data_raw)
@@ -164,8 +191,6 @@ with st.sidebar:
 full_df, _ = coordinator.get_data()
 if full_df.empty:
     # Synchronous initial fetch for first-run
-    SHEET_ID = "1oe96VFlcWbeEMMKrMjxEroOxbH0wFG6LlCny1gJzc8Q"
-    SHEET_GID = "1881582747"
     try:
         url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={SHEET_GID}"
         initial_df = pd.read_csv(url)
