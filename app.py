@@ -135,25 +135,25 @@ with st.sidebar:
 
     manual_sync_trigger()
 
-# --- Background Sync Fragment ---
-if 'last_ui_sync' not in st.session_state:
-    st.session_state.last_ui_sync = 0.0
+    # --- Background Sync Fragment ---
+    if 'last_ui_sync' not in st.session_state:
+        st.session_state.last_ui_sync = 0.0
 
-@st.fragment(run_every=10)
-def background_monitor():
-    # If the coordinator has new data since our last UI render, trigger rerun
-    _, last_sync = coordinator.get_data()
-    st.caption(f"Last Synced: {time.strftime('%H:%M:%S', time.localtime(last_sync))}")
-    
-    if last_sync > st.session_state.last_ui_sync:
-        st.session_state.last_ui_sync = last_sync
-        st.rerun()
-    
-    # If auto-refresh is on and it's time to sync, trigger the background task
-    if st.session_state.get('auto_refresh_enabled', True):
-        coordinator.sync()
+    @st.fragment(run_every=10)
+    def background_monitor():
+        # If the coordinator has new data since our last UI render, trigger rerun
+        _, last_sync = coordinator.get_data()
+        st.caption(f"Last Synced: {time.strftime('%H:%M:%S', time.localtime(last_sync))}")
+        
+        if last_sync > st.session_state.last_ui_sync:
+            st.session_state.last_ui_sync = last_sync
+            st.rerun()
+        
+        # If auto-refresh is on and it's time to sync, trigger the background task
+        if st.session_state.get('auto_refresh_enabled', True):
+            coordinator.sync()
 
-background_monitor()
+    background_monitor()
 
 
 # --- App Logic ---
