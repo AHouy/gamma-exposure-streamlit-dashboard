@@ -116,7 +116,24 @@ def load_full_data(force_sync=False):
     return df
 
 # --- Data Sync Controls ---
+with st.sidebar:
+    st.header("Data Sync")
+    
+    @st.fragment()
+    def manual_sync_trigger():
+        col1, col2 = st.columns([4, 1])
+        if col1.button("📥 Sync New Data", use_container_width=True):
+            # Bypass the 60s throttle and start a background sync
+            coordinator.sync(force_sync=True)
+            st.toast("Sync task started in background")
+        if col2.button("🔃", help="Reset Global Cache"):
+            # Deep reset of the coordinator logic
+            st.cache_data.clear()
+            load_full_data(force_sync=True)
+            st.toast("Internal state reset. Reloading...")
+            st.rerun()
 
+    manual_sync_trigger()
 
 # --- Background Sync Fragment ---
 if 'last_ui_sync' not in st.session_state:
