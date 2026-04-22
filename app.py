@@ -272,6 +272,13 @@ CHARM_METRICS = {
     'Put Vol': 'put_charm_vol'
 }
 
+VANNA_METRICS = {
+    'Open Interest': 'dealer_vanna_oi',
+    'Net Volume': 'dealer_vanna_vol',
+    'Call Vol': 'call_vanna_vol',
+    'Put Vol': 'put_vanna_vol'
+}
+
 LABEL_MAP = {
     'dealer_gamma_oi': 'Open Interest',
     'dealer_gamma_vol': 'Net Volume',
@@ -284,7 +291,11 @@ LABEL_MAP = {
     'dealer_charm_oi': 'Open Interest',
     'dealer_charm_vol': 'Net Volume',
     'call_charm_vol': 'Call Vol',
-    'put_charm_vol': 'Put Vol'
+    'put_charm_vol': 'Put Vol',
+    'dealer_vanna_oi': 'Open Interest',
+    'dealer_vanna_vol': 'Net Volume',
+    'call_vanna_vol': 'Call Vol',
+    'put_vanna_vol': 'Put Vol'
 }
 
 
@@ -469,7 +480,11 @@ COLOR_PALETTE = {
     'dealer_charm_oi': '#8b5cf6',
     'dealer_charm_vol': '#f59e0b',
     'call_charm_vol': '#10b981',
-    'put_charm_vol': '#ef4444'
+    'put_charm_vol': '#ef4444',
+    'dealer_vanna_oi': '#8b5cf6',
+    'dealer_vanna_vol': '#f59e0b',
+    'call_vanna_vol': '#10b981',
+    'put_vanna_vol': '#ef4444'
 }
 
 HISTORICAL_MARKERS = {
@@ -492,7 +507,11 @@ LABEL_MAP = {
     'dealer_charm_oi': 'Open Interest',
     'dealer_charm_vol': 'Net Volume',
     'call_charm_vol': 'Call Vol',
-    'put_charm_vol': 'Put Vol'
+    'put_charm_vol': 'Put Vol',
+    'dealer_vanna_oi': 'Open Interest',
+    'dealer_vanna_vol': 'Net Volume',
+    'call_vanna_vol': 'Call Vol',
+    'put_vanna_vol': 'Put Vol'
 }
 
 
@@ -853,6 +872,19 @@ with tab1:
         if charm_opts:
             streamlit_highcharts(charm_opts, key="spot_charm", height=1000)
 
+    with col4:
+        vanna_opts = create_highcharts_bar(
+            filtered_snapshot, 
+            f"Spot Vanna - {selected_ticker}", 
+            list(VANNA_METRICS.values()), 
+            LABEL_MAP,
+            current_price,
+            timeseries_data=historical_context_df,
+            height=1000
+        )
+        if vanna_opts:
+            streamlit_highcharts(vanna_opts, key="spot_vanna", height=1000)
+
 # ----------------- Render Bottom Row -----------------
 with tab2:
     st.subheader("Historical Trajectory")
@@ -897,6 +929,37 @@ with tab2:
     )
     if charm_hm_opts:
         streamlit_highcharts(charm_hm_opts, key="hist_charm_heatmap", height=650)
+
+    # Vanna Heatmap
+    vanna_hm_opts = create_highcharts_heatmap(
+        filtered_timeseries, 
+        f"Vanna Exposure Heatmap - {selected_ticker}", 
+        'dealer_vanna_vol',
+        current_price,
+        is_normalized=st.session_state.normalized_heatmap
+    )
+    if vanna_hm_opts:
+        streamlit_highcharts(vanna_hm_opts, key="hist_vanna_heatmap", height=650)
+
+    # Historical Vanna & Charm Timelines
+    col3, col4 = st.columns(2)
+    with col3:
+        charm_flow_opts = create_highcharts_line(
+            filtered_timeseries, 
+            "Charm Exposure by Time per Strike", 
+            "dealer_charm_vol"
+        )
+        if charm_flow_opts:
+            streamlit_highcharts(charm_flow_opts, key="hist_charm_line", height=650)
+            
+    with col4:
+        vanna_flow_opts = create_highcharts_line(
+            filtered_timeseries, 
+            "Vanna Exposure by Time per Strike", 
+            "dealer_vanna_vol"
+        )
+        if vanna_flow_opts:
+            streamlit_highcharts(vanna_flow_opts, key="hist_vanna_line", height=650)
 
 
 # ----------------- Animation: Rerun Trigger -----------------
