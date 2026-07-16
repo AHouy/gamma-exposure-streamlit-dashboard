@@ -43,11 +43,12 @@ class DataCoordinator:
 
     def fetch_raw(self, offset):
         """Standard incremental fetch logic from Gviz."""
+        query = "SELECT * WHERE A IS NOT NULL"
         if offset > 0:
-            query = urllib.parse.quote(f"SELECT * OFFSET {offset}")
-            url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={SHEET_GID}&tq={query}"
-        else:
-            url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={SHEET_GID}"
+            query += f" OFFSET {offset}"
+
+        query = urllib.parse.quote(query)
+        url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv&gid={SHEET_GID}&tq={query}"
         
         # print(f"Background Fetch: {url}") # Log for debugging
         return pd.read_csv(url)
@@ -75,17 +76,17 @@ class DataCoordinator:
         def _sync_task():
             self.is_syncing = True
             try:
-                count = self.get_count()
-                if count == 0:
-                    # If no data in the spreadsheet, it indicates a new trading day
-                    # Reset the dataframe and last row count
-                    self.error = "No data found in the sheet."
-                    self.full_df = pd.DataFrame()
-                    self.last_row_count = 0
-                    self.last_sync_timestamp = 0
-                    return
-                elif count == self.last_row_count:
-                    return
+                # count = self.get_count()
+                # if count == 0:
+                #     # If no data in the spreadsheet, it indicates a new trading day
+                #     # Reset the dataframe and last row count
+                #     self.error = "No data found in the sheet."
+                #     self.full_df = pd.DataFrame()
+                #     self.last_row_count = 0
+                #     self.last_sync_timestamp = 0
+                #     return
+                # elif count == self.last_row_count:
+                #     return
                 new_data_raw = self.fetch_raw(self.last_row_count)
                 if not new_data_raw.empty:
                     raw_count = len(new_data_raw)
